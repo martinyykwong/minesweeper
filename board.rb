@@ -6,8 +6,9 @@ class Board
 
     attr_reader :grid
     
-    def initialize(rows, cols) #20% of tiles will be bombs
+    def initialize(rows, cols, fraction_of_bombs) #fraction in decimal,i.e. 0.2
         @grid = Array.new(rows) {|row| Array.new(cols)}
+        @fraction_of_bombs = fraction_of_bombs
     end
 
     def [](position_array) #references to tile instance at specified position
@@ -26,7 +27,7 @@ class Board
         cols = self.grid[0].length
 
         bomb_positions_array = []
-        until bomb_positions_array.length >= rows*cols*0.2
+        until bomb_positions_array.length >= rows*cols * @fraction_of_bombs
             row_pos = rand(0...rows)
             col_pos = rand(0...cols)
             if !bomb_positions_array.include?([row_pos,col_pos])
@@ -36,7 +37,7 @@ class Board
         bomb_positions_array
     end
 
-    def generate_bomb_tile_instances_in_grid(bomb_pos_array) #also passes board position info to each tile
+    def generate_bomb_tile_instances_in_grid(bomb_pos_array) #also passes board instance and board position info to each tile
         self.grid.each_with_index do |row, m|
             row.each_with_index do |col,n|
                 if bomb_pos_array.include?([m,n])
@@ -53,8 +54,10 @@ class Board
             row.map do |col|
                 if col.bomb
                     "*"
+                # elsif col.flagged
+                #     "F"
                 else
-                    col.neighbor_bomb_count.to_s #attribute to display near bombs?
+                    "#{col.neighbor_bomb_count}"
                 end
             end
         end
@@ -67,6 +70,8 @@ class Board
                     "*"
                 elsif col.revealed && !col.bomb
                     "#{col.neighbor_bomb_count}"
+                elsif col.flagged
+                    "F"
                 else
                     " "
                 end
@@ -81,14 +86,37 @@ class Board
         end
     end
 
+    def render_all_tiles_after_loss
+        puts "  #{(0...self.grid[0].length).to_a.join(" ")}".yellow
+        self.reveal_all_tiles.each_with_index do |row, m|
+            puts "#{String(m).yellow+" "+row.join(" ")}"
+        end
+    end
+
+    def win?
+        self.grid.flatten.all? {|tile| (tile.revealed && !tile.bomb) || (!tile.revealed && tile.bomb) }
+    end
+
+    def lose? #might not need this method if just use Board#win? as break loop condition
+        #alternatively,
+        # self.grid.flatten.any? {|tile| tile.bomb && tile.revealed}
+        self.grid.each do |row|
+            row.each do |col|
+                if col.bomb && col.revealed
+                    return true
+                end
+            end
+        end
+        false
+    end
 
 end
 
-if __FILE__ == $PROGRAM_NAME
-    board1 = Board.new(4,4)
-    y = board1.create_bomb_position_array
-    board1.generate_bomb_tile_instances_in_grid(y)
-    board1[[3,2]].explore_tile
-    board1.render
-    p board1.grid[3][3].neighbors_positions
-end
+# if __FILE__ == $PROGRAM_NAME
+#     board1 = Board.new(4,4,0.2)
+#     y = board1.create_bomb_position_array
+#     board1.generate_bomb_tile_instances_in_grid(y)
+#     board1[[3,2]].explore_tile
+#     board1.render
+#     p board1.grid[3][3].neighbors_positions
+# end

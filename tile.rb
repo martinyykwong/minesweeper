@@ -2,8 +2,8 @@ require_relative "./board.rb"
 
 class Tile
 
-    attr_accessor :flagged, :revealed
-    attr_reader :bomb, :board, :board_position ,:adjacent_bomb_count
+    attr_accessor :revealed
+    attr_reader :bomb, :board, :board_position ,:adjacent_bomb_count, :flagged
 
     def initialize(content, board, board_position)
         @flagged = false
@@ -21,6 +21,14 @@ class Tile
 
     def reveal
         self.revealed = true
+    end
+
+    def flag
+        if !self.flagged
+            @flagged = true
+        else
+            @flagged = false
+        end
     end
 
     def neighbors_positions #needs to return an array of all neighbor positions
@@ -47,19 +55,26 @@ class Tile
     end
 
     def explore_tile #self is tile instance   
-        if self.neighbor_bomb_count > 0 && !self.bomb
+        if self.revealed || self.flagged #if tile has been revealed before, no need to explore it again?
+            return self
+        elsif self.neighbor_bomb_count > 0 && !self.bomb
             @adjacent_bomb_count = self.neighbor_bomb_count
             return self.revealed = true
-        elsif self.revealed #if tile has been revealed before, no need to explore it again?
-            return self
+        elsif !self.revealed && !self.bomb
+            @adjacent_bomb_count = self.neighbor_bomb_count
+            self.revealed = true
         end
 
         self.neighbors_positions.each do |pos_arr|
-            if !self.board[pos_arr].revealed && !self.board[pos_arr].bomb #fishy instance methods for "if tile has not been revealed and if tile is not a bomb" 
+            if  !self.board[pos_arr].bomb && !self.board[pos_arr].revealed && !self.board[pos_arr].flagged #"if tile is not a bomb and if tile has not been revealed"
                 self.board[pos_arr].revealed = true
-                neighboar_arr_of_pos_arr_tile = self.board[pos_arr].neighbors_positions #gives an array of neighbor positions
-                neighboar_arr_of_pos_arr_tile.each do |neighbor_pos_arr|
-                    self.board[neighbor_pos_arr].explore_tile
+                if self.board[pos_arr].neighbor_bomb_count > 0
+                    next
+                else
+                    neighboar_arr_of_pos_arr_tile = self.board[pos_arr].neighbors_positions #gives an array of neighbor positions to pos_arr tile
+                    neighboar_arr_of_pos_arr_tile.each do |neighbor_pos_arr|
+                        self.board[neighbor_pos_arr].explore_tile
+                    end
                 end
             end
         end
