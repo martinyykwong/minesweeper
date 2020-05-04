@@ -1,6 +1,6 @@
 require_relative "./board.rb"
 require_relative "./player.rb"
-# require 'colorize'
+require_relative "./tile.rb"
 
 class MinesweeperGame
 
@@ -8,14 +8,32 @@ class MinesweeperGame
 
     def initialize(rows,cols,fraction_of_bombs, player_name)
         @board = Board.new(rows,cols,fraction_of_bombs)
-        @player = Player.new(player_name)
+        @player = Player.new(player_name, @board)
     end
 
     def play
-        #add code to request player's first move
-        bomb_pos_arr = self.board.create_bomb_position_array
-        self.board.generate_bomb_tile_instances_in_grid(bomb_pos_arr)
-        until self.board.win? || self.board.lose?
+        until self.board.grid.flatten.all? {|tile| tile.is_a?(Tile)}
+            system("clear")
+            self.board.render
+            puts
+            puts "Welcome to Martin's Minesweeper! For your fist turn, please choose a row & column position, separated by comma (e.g. 2,1):"
+            begin
+            first_turn_pos_input = player.get_input_position
+            self.board[first_turn_pos_input] = Tile.new(:safe, self.board, first_turn_pos_input)
+            bomb_pos_arr = self.board.create_bomb_position_array(first_turn_pos_input)
+            self.board.generate_bomb_tile_instances_in_grid(bomb_pos_arr)
+            self.board[first_turn_pos_input].explore_tile
+            rescue
+                system("clear")
+                self.board.render
+                puts
+                puts "Invalid position. Please try again to initialize your game"
+                sleep(3)
+            end
+        end
+
+        until self.board.win?
+            begin
             system("clear")
             self.board.render
             puts
@@ -26,54 +44,59 @@ class MinesweeperGame
             puts
             puts "Please input F for flag, or R for reveal at #{pos_input}:"
             action_input = player.get_action
-            # system("clear")
             if action_input == "R"
-                # if self.board.grid.flatten.none? {|tile| tile.revealed} && (self.board[pos_input].bomb || self.board[pos_input].neighbor_bomb_count > 0)
-                #     self.board.grid.each_with_index do |row,m|
-                #         row.each_with_index do |col,n|
-                #             if !col.bomb
-                #                 self.board[pos_input],self.board[[m,n]] = self.board[[m,n]],self.board[pos_input] #in first turn, swap bomb tile with a safe tile if neccessary. Fishy
-                #                 break
-                #             end
-                #         end
-                #     end
-                if self.board[pos_input].bomb
+                if self.board[pos_input].flagged
+                    system("clear")
+                    self.board.render
+                    puts
+                    puts "You cannot reveal a flagged location. Please unflag first"
+                elsif self.board[pos_input].bomb
                     self.board[pos_input].reveal
                     system("clear")
                     self.board.render_all_tiles_after_loss
                     puts
-                    puts "You hit a bomb! You lost!"
+                    puts "You hit a bomb at #{pos_input}! You lost!"
                     return
                 else
                     if self.board[pos_input].revealed
                         system("clear")
                         self.board.render
                         puts
-                        puts "This position was already revealed. Please choose another"
-                        sleep(2)
+                        puts "This position was already revealed. Please choose another position"
                     else
                         self.board[pos_input].explore_tile
                         system("clear")
                         self.board.render
                         puts
-                        puts "You are safe!"
-                        sleep(2)
+                        puts "You are safe!"              
                     end
                 end
-            elsif action_input == "F" #maybe should be else instead of elsif?
+            elsif action_input == "F"
                 if !self.board[pos_input].revealed
                     self.board[pos_input].flag
                     system("clear")
                     self.board.render
                     puts
-                    puts "Flag successfully placed at #{pos_input}"
-                    sleep(2)
+                    puts "Flag successfully toggled at #{pos_input}"
                 else
                     system("clear")
                     self.board.render
-                    puts "You cannot place flag at #{pos_input} because it has already been revealed"
+                    puts
+                    puts "You cannot place flag at #{pos_input} because it has already been revealed"                 
                 end
+            else
+                system("clear")
+                self.board.render
+                puts
+                puts "Invalid action command. No action was performed."
             end
+            rescue
+                system("clear")
+                self.board.render
+                puts
+                puts "Invalid position. Please try again"
+            end
+            sleep(3)
         end
         puts "Congratuations #{self.player.name}! You won!"
     end
@@ -82,12 +105,6 @@ end
 
 
 if __FILE__ == $PROGRAM_NAME
-    game1 = MinesweeperGame.new(10,10,0.2,"Martin")
+    game1 = MinesweeperGame.new(10,10,0.15,"Martin")
     game1.play
-    # board1 = Board.new(4,4,0.2)
-    # y = board1.create_bomb_position_array
-    # board1.generate_bomb_tile_instances_in_grid(y)
-    # board1[[3,2]].explore_tile
-    # board1.render
-    # p board1.grid[3][3].neighbors_positions
 end

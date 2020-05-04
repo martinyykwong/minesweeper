@@ -1,6 +1,6 @@
-require_relative './tile.rb'
+require_relative "./tile.rb"
 require_relative "./minesweeper_game.rb"
-require 'colorize'
+require "colorize"
 
 class Board
 
@@ -15,14 +15,14 @@ class Board
         self.grid[position_array[0]][position_array[1]]
     end
 
-    # def []=(grid_pos_array, value)
-    #     # row, col = *grid_pos_array
-    #     row = grid_pos_array[0]
-    #     col = grid_pos_array[1]
-    #     self.grid[row][col] = value
-    # end
+    def []=(grid_pos_array, value)
+        row = grid_pos_array[0]
+        col = grid_pos_array[1]
+        self.grid[row][col] = value
+    end
 
-    def create_bomb_position_array
+    def create_bomb_position_array(first_turn_input_pos_arr) #cannot create bombs at input position or any square around it
+        initial_row, initial_col = first_turn_input_pos_arr
         rows = self.grid.length
         cols = self.grid[0].length
 
@@ -30,7 +30,7 @@ class Board
         until bomb_positions_array.length >= rows*cols * @fraction_of_bombs
             row_pos = rand(0...rows)
             col_pos = rand(0...cols)
-            if !bomb_positions_array.include?([row_pos,col_pos])
+            if !bomb_positions_array.include?([row_pos,col_pos]) && (first_turn_input_pos_arr != [row_pos,col_pos]) && !self[first_turn_input_pos_arr].neighbors_positions.include?([row_pos,col_pos])
                 bomb_positions_array << [row_pos,col_pos]
             end
         end
@@ -49,15 +49,17 @@ class Board
         end
     end
 
-    def reveal_all_tiles #for debugging to see positions of all bombs
+    def reveal_all_tiles #for display if lose game
         self.grid.map do |row|
             row.map do |col|
                 if col.bomb
-                    "*"
-                # elsif col.flagged
-                #     "F"
-                else
+                    "*".red
+                elsif col.flagged && !col.bomb
+                    "F"
+                elsif col.revealed
                     "#{col.neighbor_bomb_count}"
+                else
+                    " "
                 end
             end
         end
@@ -66,12 +68,14 @@ class Board
     def all_revealed_tiles
         self.grid.map do |row|
             row.map do |col|
-                if col.revealed && col.bomb #each col is a tile instance
-                    "*"
+                if col == nil #for first turn, before tile instances are generated
+                    " "
+                elsif col.revealed && col.bomb #each col is a tile instance
+                    "*".red
                 elsif col.revealed && !col.bomb
                     "#{col.neighbor_bomb_count}"
                 elsif col.flagged
-                    "F"
+                    "F".red
                 else
                     " "
                 end
@@ -97,26 +101,4 @@ class Board
         self.grid.flatten.all? {|tile| (tile.revealed && !tile.bomb) || (!tile.revealed && tile.bomb) }
     end
 
-    def lose? #might not need this method if just use Board#win? as break loop condition
-        #alternatively,
-        # self.grid.flatten.any? {|tile| tile.bomb && tile.revealed}
-        self.grid.each do |row|
-            row.each do |col|
-                if col.bomb && col.revealed
-                    return true
-                end
-            end
-        end
-        false
-    end
-
 end
-
-# if __FILE__ == $PROGRAM_NAME
-#     board1 = Board.new(4,4,0.2)
-#     y = board1.create_bomb_position_array
-#     board1.generate_bomb_tile_instances_in_grid(y)
-#     board1[[3,2]].explore_tile
-#     board1.render
-#     p board1.grid[3][3].neighbors_positions
-# end

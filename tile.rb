@@ -16,7 +16,7 @@ class Tile
         @board = board #board instance
         @board_position = board_position #[m,n] format
         
-        @adjacent_bomb_count = nil #necessary attribute?
+        @adjacent_bomb_count = nil
     end
 
     def reveal
@@ -31,7 +31,7 @@ class Tile
         end
     end
 
-    def neighbors_positions #needs to return an array of all neighbor positions
+    def neighbors_positions #return an array of all neighbor positions
         m,n = self.board_position
         neighbor_positions_arr = []
         (m-1..m+1).each do |row_pos|
@@ -44,7 +44,7 @@ class Tile
         neighbor_positions_arr #[[0,1],[1,0],[1,1]] format
     end
 
-    def neighbor_bomb_count #return a number string to denote # of adjacent bombs. Return "_" if no bombs around
+    def neighbor_bomb_count #return an integer number to denote # of adjacent bombs
         bomb_counts = 0
         self.neighbors_positions.each do |row,col|
             if self.board.grid[row][col].bomb
@@ -55,7 +55,7 @@ class Tile
     end
 
     def explore_tile #self is tile instance   
-        if self.revealed || self.flagged #if tile has been revealed before, no need to explore it again?
+        if self.revealed || self.flagged #if tile has been revealed before, no need to explore it again
             return self
         elsif self.neighbor_bomb_count > 0 && !self.bomb
             @adjacent_bomb_count = self.neighbor_bomb_count
@@ -66,7 +66,7 @@ class Tile
         end
 
         self.neighbors_positions.each do |pos_arr|
-            if  !self.board[pos_arr].bomb && !self.board[pos_arr].revealed && !self.board[pos_arr].flagged #"if tile is not a bomb and if tile has not been revealed"
+            if  !self.board[pos_arr].bomb && !self.board[pos_arr].revealed && !self.board[pos_arr].flagged #"if tile is not a bomb, if tile has not been revealed, and if tile is not flagged"
                 self.board[pos_arr].revealed = true
                 if self.board[pos_arr].neighbor_bomb_count > 0
                     next
